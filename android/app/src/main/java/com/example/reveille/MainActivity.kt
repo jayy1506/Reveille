@@ -13,9 +13,13 @@ import androidx.compose.material3.Text
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val perms = mutableListOf(android.Manifest.permission.RECORD_AUDIO)
         if (android.os.Build.VERSION.SDK_INT >= 33) {
-            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0)
+            perms.add(android.Manifest.permission.POST_NOTIFICATIONS)
         }
+        requestPermissions(perms.toTypedArray(), 0)
+
         setContent {
             Button(onClick = { scheduleAlarm(this@MainActivity, 30) }) {
                 Text("Set alarm in 30 seconds")
