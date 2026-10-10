@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 class MainActivity : ComponentActivity() {
+    private val refreshKey = mutableStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -25,13 +27,18 @@ class MainActivity : ComponentActivity() {
         }
         requestPermissions(perms.toTypedArray(), 0)
 
-        setContent { AlarmScreen() }
+        setContent { AlarmScreen(refreshKey.value) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshKey.value++   // makes the screen reload missions each time you come back
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlarmScreen() {
+fun AlarmScreen(refreshKey: Int) {
     val context = LocalContext.current
     val timeState = rememberTimePickerState(
         initialHour = AlarmStore.hour(context),
@@ -41,6 +48,9 @@ fun AlarmScreen() {
     var enabled by remember { mutableStateOf(AlarmStore.enabled(context)) }
     var savedHour by remember { mutableStateOf(AlarmStore.hour(context)) }
     var savedMinute by remember { mutableStateOf(AlarmStore.minute(context)) }
+    val missions = remember(refreshKey) {
+        mutableStateListOf<Mission>().also { it.addAll(MissionStore.today(context)) }
+    }
 
     Column(
         modifier = Modifier
@@ -79,6 +89,25 @@ fun AlarmScreen() {
         Spacer(Modifier.height(16.dp))
         OutlinedButton(onClick = { AlarmScheduler.scheduleTest(context, 30) }) {
             Text("Test: ring in 30 seconds")
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Text("TODAY'S MISSIONS", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        if (missions.isEmpty()) {
+            Text("No missions yet. They appear after you report to the sergeant.")
+        } else {
+            missions.forEachIndexed { index, m ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = m.done,
+                        onCheckedChange = { checked ->
+                            MissionStore.setDone(context, m.id, checked)
+                            missions[index] = m.copy(done = checked)
+                        }
+                    )
+                    Text(m.title)
+                }
+            }
         }
     }
 }

@@ -160,8 +160,11 @@ class AlarmActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             val result = JudgeClient.judge(heard)
             runOnUiThread {
                 when {
-                    result == null -> localCheck(heard)          // server down: fall back
-                    result.valid -> say(result.reply, "end")
+                    result == null -> localCheck(heard)
+                    result.valid -> {
+                        MissionStore.replaceToday(this@AlarmActivity, result.tasks)
+                        say(result.reply, "end")
+                    }
                     else -> say(result.reply, "reject")
                 }
             }
@@ -174,6 +177,7 @@ class AlarmActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         val excuses = listOf("five more", "5 more", "snooze", "not now")
         val valid = wordCount >= 4 && excuses.none { lower.contains(it) }
         if (valid) {
+            MissionStore.replaceToday(this@AlarmActivity, listOf(heard))
             say("Server is down, but I'll accept that. Move out!", "end")
         } else {
             say("That is not a plan, soldier! Try again!", "reject")
