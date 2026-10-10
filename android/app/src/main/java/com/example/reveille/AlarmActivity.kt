@@ -155,12 +155,26 @@ class AlarmActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun handleAnswer(heard: String) {
+        status.value = "Sergeant is reviewing your report..."
+        Thread {
+            val result = JudgeClient.judge(heard)
+            runOnUiThread {
+                when {
+                    result == null -> localCheck(heard)          // server down: fall back
+                    result.valid -> say(result.reply, "end")
+                    else -> say(result.reply, "reject")
+                }
+            }
+        }.start()
+    }
+
+    private fun localCheck(heard: String) {
         val lower = heard.lowercase()
         val wordCount = lower.split(" ").count { it.isNotBlank() }
         val excuses = listOf("five more", "5 more", "snooze", "not now")
         val valid = wordCount >= 4 && excuses.none { lower.contains(it) }
         if (valid) {
-            say("Mission accepted: $heard. Move out!", "end")
+            say("Server is down, but I'll accept that. Move out!", "end")
         } else {
             say("That is not a plan, soldier! Try again!", "reject")
         }

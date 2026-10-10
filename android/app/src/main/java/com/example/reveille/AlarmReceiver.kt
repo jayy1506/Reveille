@@ -11,6 +11,11 @@ import androidx.core.app.NotificationCompat
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        // Arm tomorrow's alarm first, so it's set even if something below fails
+        if (intent.getBooleanExtra("daily", false) && AlarmStore.enabled(context)) {
+            AlarmScheduler.scheduleDaily(context, AlarmStore.hour(context), AlarmStore.minute(context))
+        }
+
         Log.d("Reveille", "ALARM FIRED")
 
         val channelId = "reveille_alarm"

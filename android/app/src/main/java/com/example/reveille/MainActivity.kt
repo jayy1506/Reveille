@@ -1,14 +1,19 @@
 package com.example.reveille
 
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,24 +25,60 @@ class MainActivity : ComponentActivity() {
         }
         requestPermissions(perms.toTypedArray(), 0)
 
-        setContent {
-            Button(onClick = { scheduleAlarm(this@MainActivity, 30) }) {
-                Text("Set alarm in 30 seconds")
-            }
-        }
+        setContent { AlarmScreen() }
     }
 }
 
-fun scheduleAlarm(context: Context, secondsFromNow: Int) {
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val intent = Intent(context, AlarmReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(
-        context, 0, intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AlarmScreen() {
+    val context = LocalContext.current
+    val timeState = rememberTimePickerState(
+        initialHour = AlarmStore.hour(context),
+        initialMinute = AlarmStore.minute(context),
+        is24Hour = false
     )
-    val triggerAt = System.currentTimeMillis() + secondsFromNow * 1000L
-    alarmManager.setAlarmClock(
-        AlarmManager.AlarmClockInfo(triggerAt, pendingIntent),
-        pendingIntent
-    )
+    var enabled by remember { mutableStateOf(AlarmStore.enabled(context)) }
+    var savedHour by remember { mutableStateOf(AlarmStore.hour(context)) }
+    var savedMinute by remember { mutableStateOf(AlarmStore.minute(context)) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("REVEILLE", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(16.dp))
+
+        TimePicker(state = timeState)
+        Spacer(Modifier.height(16.dp))
+
+        Button(onClick = {
+            AlarmStore.save(context, timeState.hour, timeState.minute, true)
+            AlarmScheduler.scheduleDaily(context, timeState.hour, timeState.minute)
+            savedHour = timeState.hour
+            savedMinute = timeState.minute
+            enabled = true
+        }) {
+            Text(if (enabled) "Update wake-up time" else "Set wake-up alarm")
+        }
+
+        if (enabled) {
+            Spacer(Modifier.height(8.dp))
+            Text("Alarm set daily for %02d:%02d".format(savedHour, savedMinute))
+            OutlinedButton(onClick = {
+                AlarmScheduler.cancelDaily(context)
+                AlarmStore.save(context, savedHour, savedMinute, false)
+                enabled = false
+            }) { Text("Cancel alarm") }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        OutlinedButton(onClick = { AlarmScheduler.scheduleTest(context, 30) }) {
+            Text("Test: ring in 30 seconds")
+        }
+    }
 }
