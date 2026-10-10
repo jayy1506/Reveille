@@ -1,7 +1,6 @@
 package com.example.reveille
 
 import android.Manifest
-import android.util.Log
 import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,6 +13,7 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -84,11 +84,16 @@ class AlarmActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         )
         tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
-            override fun onError(error: Int) {
-                Log.e("Reveille", "Recognizer error code: $error")
-                status.value = "Mic error code: $error"
-                say("I heard nothing, soldier! Try again!", "reject")
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                Log.e("Reveille", "TTS error for utteranceId: $utteranceId")
             }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                Log.e("Reveille", "TTS error code: $errorCode")
+            }
+
             override fun onDone(utteranceId: String?) {
                 runOnUiThread {
                     when (utteranceId) {
@@ -117,9 +122,6 @@ class AlarmActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         player?.pause()
         say("What are your missions today? Report!", "ask")
     }
-    private fun startListening() {
-        Log.d("Reveille", "startListening called")
-        ...
 
     private fun startListening() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
