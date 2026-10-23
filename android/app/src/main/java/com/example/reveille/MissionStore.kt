@@ -54,7 +54,25 @@ object MissionStore {
         saveAll(c, kept)
     }
 
+    fun addTomorrowMission(c: Context, title: String) {
+        val tomorrow = LocalDate.now().plusDays(1).toString()
+        val list = loadAll(c)
+        list.add(Mission(System.currentTimeMillis(), title, tomorrow, false))
+        saveAll(c, list)
+    }
+
+    fun addMissionForToday(c: Context, title: String) {
+        val today = LocalDate.now().toString()
+        val list = loadAll(c)
+        list.add(Mission(System.currentTimeMillis(), title, today, false))
+        saveAll(c, list)
+    }
+
     fun setDone(c: Context, id: Long, done: Boolean) {
         saveAll(c, loadAll(c).map { if (it.id == id) it.copy(done = done) else it })
+    }
+
+    fun deleteMission(c: Context, id: Long) {
+        saveAll(c, loadAll(c).filter { it.id != id })
     }
 }
